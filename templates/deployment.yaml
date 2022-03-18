@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  redis-shake-{{ .Release.Name }}
+  labels:
+    app: redis-shake-{{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-shake-{{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: redis-shake-{{ .Release.Name }}
+    spec:
+      containers:
+      - name: redisshake
+        image: "{{ .Values.image.repo }}:{{ .Values.image.tag }}"
+        args:
+        - -c
+        - cp /tmp/redis-shake.conf /usr/local/app && /usr/local/app/redis-shake.linux -type=sync -conf=/usr/local/app/redis-shake.conf
+        command:
+        - /bin/sh
+        ports:
+        - containerPort: 9320
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.livenessProbe.path }}
+            port: {{ .Values.livenessProbe.port }}
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+        volumeMounts:
+        - name: conf
+          mountPath: /tmp
+      volumes:
+      - configMap:
+          name: {{ .Release.Name }}-cm
+        name: conf
+          
